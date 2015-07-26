@@ -75,7 +75,7 @@ pred <- predict(again, cv)
 
 paste("Acc: ", round(mean(cv$classe==pred), 3))
 ````
-We can see the accuracy is slightly better after tuning.
+We can see the accuracy is same after tuning. It does not help improve accuracy.
 
 ## Predicting Test Data with Tuned Parameter
 
