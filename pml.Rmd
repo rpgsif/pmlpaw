@@ -1,0 +1,104 @@
+---
+title: "predict manner by accelerometer"
+output: html_document
+---
+
+##Get Data
+````{R}
+trainDat <- read.csv("pml-training.csv")
+testDat <- read.csv("pml-testing.csv")
+````
+
+
+##Preprocess
+
+Create temporary variable to clear data.
+````{R}
+dat <- trainDat
+dat$X <- NULL
+# X is only the indexes of data
+````
+
+There are many meaningless variables, so remove them from training set.
+````{R}
+classe <- dat$classe
+
+# remove factor columns
+dat <- dat[,lapply(dat, class)!="factor"]
+
+# remove columns have 95% more NAs
+dat <- dat[,lapply(dat, function(x){mean(is.na(x))})<0.95]
+
+# remove time stamp column
+dat <- dat[,-grep("time", colnames(dat))]
+
+# add results classe to the cleaned data
+dat <- cbind(dat, classe)
+````
+
+##Split The Data into Training Set and Cross Validation Set
+
+````{R}
+trIdx <- sample(nrow(dat), nrow(dat)/2)
+training <- dat[trIdx,]
+cv <- dat[-trIdx,]
+````
+
+##Training
+
+We are going to use random forest for training and predicting.
+````{R}
+library(randomForest)
+
+mdl <- randomForest(classe ~ ., training)
+# prediction on CV set
+pred <- predict(mdl, cv)
+````
+
+Report the result:
+````{R}
+table(cv$classe, pred)
+paste("Acc: ", round(mean(cv$classe==pred), 3))
+````
+
+##Tuning
+````{R}
+x <- dat
+x$classe <- NULL
+y <- dat$classe
+tuneRF(x, y)
+````
+We can do cross validate again with optimal mtry
+````{R}
+again <- randomForest(classe~., training, mtry=28)
+pred <- predict(again, cv)
+
+paste("Acc: ", round(mean(cv$classe==pred), 3))
+````
+We can see the accuracy is same after tuning. It does not help improve accuracy.
+
+## Predicting Test Data with Tuned Parameter
+
+Do same operations as training set
+````{R}
+testDat$X <- NULL
+
+testDat <- testDat[,lapply(testDat, class)!="factor"]
+
+testDat <- testDat[,lapply(testDat, function(x){mean(is.na(x))})<0.95]
+testDat <- testDat[,-grep("time", colnames(testDat))]
+
+````
+
+Using full training set (including CV set)
+````{R}
+finalMdl <- randomForest(classe ~ ., dat, mtry=28)
+
+ans <- predict(finalMdl, testDat)
+````
+
+##Result
+````{R}
+ans
+````
+
